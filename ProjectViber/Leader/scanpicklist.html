@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan Picklist - Section Viber</title>
+
+<style>
+:root{--sidebar:#10638b;--blue:#1479e8;--ink:#182433;--muted:#8290a3;--line:#e6edf4;--bg:#f4f7fb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);font-size:13px}
+button,input{font:inherit}
+.app{display:flex;min-height:100vh}
+.hidden{display:none!important}
+
+/* SIDEBAR (sama di semua halaman) */
+.sidebar{width:208px;background:var(--sidebar);color:#fff;display:flex;flex-direction:column;padding:22px 14px 16px;transition:width .25s;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 7px 30px;white-space:nowrap;overflow:hidden}
+.brand-mark{width:38px;height:38px;border:none;border-radius:50%;background:#d5e8f2;color:var(--sidebar);display:grid;place-items:center;font-size:17px;font-weight:800;flex-shrink:0;cursor:pointer}
+.brand-mark:hover{background:#fff}
+.brand-name{font-size:14px;font-weight:700}
+.nav{display:grid;gap:7px}
+.nav a{display:flex;align-items:center;gap:12px;color:#dcecf5;text-decoration:none;padding:11px 12px;border-radius:7px;white-space:nowrap;overflow:hidden}
+.nav a:hover,.nav a.active{background:#fff;color:#12618a}
+.nav .ico{width:17px;text-align:center;font-size:14px;flex-shrink:0}
+.sidebar-bottom{margin-top:auto;padding:20px 7px 0}
+.logout{width:100%;border:none;background:#fff;color:#263747;padding:10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600}
+
+/* MAIN */
+.main{min-width:0;flex:1;display:flex;flex-direction:column}
+.topbar{height:58px;display:flex;align-items:center;padding:0 28px;background:#fff;border-bottom:1px solid var(--line)}
+.crumb{color:var(--muted);font-size:13px}
+.crumb a{color:inherit;text-decoration:none}
+.crumb a:hover{color:var(--sidebar);text-decoration:underline}
+.content{padding:26px 28px 24px;flex:1}
+.heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
+.heading h1{font-size:25px;margin:0 0 7px;font-weight:700}
+.heading p{margin:0;color:var(--muted);font-size:13px}
+
+/* TOMBOL */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #d9e2ec;background:#fff;color:#263747;border-radius:8px;padding:0 16px;height:42px;font-weight:650;font-size:12px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn:hover{background:#f7f9fc}
+.btn-primary{background:var(--sidebar);border-color:var(--sidebar);color:#fff}
+.btn-primary:hover{background:#0d5578}
+.btn-sm{height:34px;padding:0 12px;font-size:11px}
+.btn:disabled{background:#e3e9f0;border-color:#e3e9f0;color:#a3afbd;cursor:not-allowed}
+
+/* LAYOUT */
+.scan-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 3px 12px #24364b05;padding:20px}
+.card+.card{margin-top:16px}
+.card h2{margin:0;font-size:17px;font-weight:700}
+
+/* KAMERA */
+.camera-header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.camera-indicator{border-radius:20px;background:#eef1f5;color:#667486;padding:6px 10px;font-size:10px;font-weight:600}
+.camera-indicator.on{background:#e6f8ef;color:#168454}
+.camera-box{position:relative;width:100%;height:250px;background:#1b2936;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.camera-box video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.camera-placeholder{color:#9eb0c1;text-align:center;z-index:1;padding:15px}
+.camera-symbol{font-size:35px;margin-bottom:8px}
+.scan-frame{width:min(82%,340px);height:96px;position:absolute;z-index:2;border:2px solid #53a5ff;border-radius:6px;pointer-events:none}
+.scan-frame:after{content:"";position:absolute;top:50%;left:3px;right:3px;height:2px;background:#53a5ff;box-shadow:0 0 8px #53a5ff}
+.camera-hint{position:absolute;bottom:10px;z-index:2;color:#d3dce5;font-size:10px;text-align:center;width:100%;pointer-events:none}
+.camera-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.scan-message{color:#d94b48;margin-top:10px;font-size:12px;min-height:16px}
+
+/* INPUT */
+.field-label{display:block;font-size:12px;font-weight:600;margin-bottom:7px;color:#4a5b70}
+.input-row{display:flex;gap:8px}
+.input-row input,.nik-input{flex:1;min-width:0;height:42px;background:#fff;border:1px solid #dfe7ef;border-radius:8px;padding:0 12px;color:#354356;outline:none}
+.input-row input:focus{border-color:#8fbdf5;box-shadow:0 0 0 3px #e4f0ff}
+.help{color:#8995a2;font-size:11px;margin-top:8px;line-height:1.5}
+.manual-block{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+
+/* HASIL SCAN */
+.result-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}
+.badge{display:inline-block;border-radius:20px;padding:6px 10px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge.done{background:#e6f8ef;color:#168454}
+.badge.planning{background:#eef1f5;color:#667486}
+.empty-result{color:#8794a5;padding:10px 0 4px}
+.result-box{background:#f3faf6;border:1px solid #d9efe2;border-radius:11px;padding:16px}
+.result-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#658272;font-size:11px;margin-bottom:12px}
+.result-name{font-weight:750;margin-bottom:14px;font-size:14px;line-height:1.5}
+.result-data{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.result-data span{display:block;color:#789080;font-size:10px;margin-bottom:4px}
+.result-data strong{font-size:12px;overflow-wrap:anywhere}
+.assign-box{background:#fff;border:1px solid #dceee1;border-radius:9px;padding:14px}
+.help.ok{color:#168454}
+.help.bad{color:#d94b48}
+.assign-link{color:#1769b2;background:none;border:0;padding:8px 0 0;font-size:11px;font-weight:650;cursor:pointer}
+.new-emp{margin-top:10px;display:grid;gap:10px}
+.new-emp label{display:block;font-size:11px;font-weight:600;color:#66768a;margin-bottom:6px}
+.result-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+.step-note{border-top:1px solid #edf1f5;padding-top:14px;color:#8794a5;line-height:1.6;font-size:12px}
+
+/* CARA SCAN */
+.steps-card h2{margin-bottom:18px}
+.step{display:flex;gap:12px;margin-bottom:18px}
+.step-number{width:24px;height:24px;background:#e8f3fc;color:#2879ca;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-weight:700;font-size:12px}
+.step strong{display:block;margin-bottom:4px;font-size:13px}
+.step p{color:#8794a5;margin:0;line-height:1.55;font-size:12px}
+
+.back-row{margin-top:16px}
+
+/* ASSIGN: banyak karyawan, cari lewat NIK / nama */
+.suggest-wrap{position:relative}
+.suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid #dfe7ef;border-radius:10px;box-shadow:0 12px 32px #10233b22;max-height:230px;overflow-y:auto;padding:5px}
+.suggest-item{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:none;background:none;text-align:left;padding:9px 10px;border-radius:7px;cursor:pointer;color:#273548;font-size:12px}
+.suggest-item:hover,.suggest-item.hl{background:#eef6ff}
+.suggest-item small{color:#8290a3;font-size:11px;flex-shrink:0}
+.suggest-empty{padding:10px;color:#8995a2;font-size:12px}
+.assignees{display:grid;gap:7px;margin-top:12px}
+.assignees:empty{display:none}
+.assignee{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#edf5ff;border:1px solid #d6e8fb;border-radius:9px;padding:9px 10px 9px 12px}
+.assignee strong{display:block;color:#1769b2;font-size:12px}
+.assignee span{display:block;color:#7891a9;font-size:10px;margin-top:3px}
+.assignee button{border:none;background:#d6e8fb;color:#1769b2;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1;padding:0;flex-shrink:0}
+.assignee button:hover{background:#f6c9c7;color:#c83e39}
+.help a{color:#1769b2;font-weight:650}
+
+/* FORM PICKLIST BARU */
+.new-pick{background:#fffaf0;border:1px solid #f3e3bd;border-radius:11px;padding:16px}
+.new-pick-note{color:#8a6b1f;font-size:12px;line-height:1.55;margin-bottom:14px}
+.np-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.np-full{grid-column:1/-1}
+.np-grid input{width:100%;height:42px;background:#fff;border:1px solid #dfe7ef;border-radius:8px;padding:0 12px;color:#354356;outline:none}
+.np-grid input:focus{border-color:#8fbdf5;box-shadow:0 0 0 3px #e4f0ff}
+.step-group{font-size:11px;font-weight:700;color:#10638b;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px}
+.step-group+.step,.step-group~.step{margin-bottom:14px}
+.divider{border-top:1px solid #edf1f5;margin:6px 0 16px}
+@media (max-width:650px){.np-grid{grid-template-columns:1fr}}
+
+/* TOAST */
+.toast{position:fixed;right:24px;bottom:24px;background:#182433;color:#fff;padding:12px 16px;border-radius:9px;font-size:12px;box-shadow:0 10px 30px #10233b40;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:40}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* FOOTER */
+.footer{background:#073d65;color:#c5d6e2;display:flex;justify-content:space-between;gap:14px;padding:14px 25px;font-size:10px}
+.footer strong{color:#fff}
+
+/* COLLAPSE SIDEBAR */
+.collapsed .sidebar{width:68px;padding-left:10px;padding-right:10px}
+.collapsed .brand{padding-left:5px;padding-right:0}
+.collapsed .brand-name,.collapsed .nav-label{display:none}
+.collapsed .nav a{justify-content:center;padding:12px 0}
+.collapsed .sidebar-bottom{padding-left:0;padding-right:0}
+.collapsed .logout{font-size:0}
+.collapsed .logout::after{content:"↪";font-size:15px}
+.mobile-overlay{display:none}
+
+/* RESPONSIVE */
+@media (max-width:1000px){.scan-layout{grid-template-columns:1fr}}
+@media (max-width:900px){.sidebar{width:180px}.content{padding:22px 18px}.topbar{padding:0 18px}}
+@media (max-width:650px){
+    .app{display:block}
+    .sidebar{position:fixed;z-index:10;left:0;top:0;bottom:0;width:230px;transform:translateX(-100%);transition:transform .25s;box-shadow:10px 0 30px #001e3320}
+    .mobile-open .sidebar{transform:translateX(0)}
+    .mobile-overlay{position:fixed;inset:0;background:#0b203c66;z-index:9}
+    .mobile-open .mobile-overlay{display:block}
+    .collapsed .sidebar{width:230px}
+    .collapsed .brand-name,.collapsed .nav-label{display:inline}
+    .collapsed .nav a{justify-content:flex-start;padding:11px 12px}
+    .topbar{height:52px}
+    .content{padding:20px 13px}
+    .heading{display:block}
+    .heading h1{font-size:21px}
+    .heading .btn{margin-top:14px;width:100%}
+    .card{padding:16px}
+    .camera-box{height:220px}
+    .result-data{grid-template-columns:1fr 1fr}
+    .input-row{flex-direction:column}
+    .input-row .btn{width:100%}
+    .result-actions .btn{flex:1}
+    .footer{padding:13px;flex-direction:column;gap:6px}
+    .crumb{display:none}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="../assets/store.js"></script>
+</head>
+
+<body>
+
+<div class="app" id="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <button class="brand-mark" id="toggleBtn" aria-label="Perkecil atau buka menu" title="Perkecil / buka menu">▦</button>
+            <span class="brand-name">Section Viber</span>
+        </div>
+
+        <nav class="nav" aria-label="Menu utama">
+            <a href="dashboard-lead.html" class="active" aria-current="page">
+                <span class="ico">▦</span><span class="nav-label">Dashboard</span>
+            </a>
+            <a href="riwayat.html">
+                <span class="ico">⟲</span><span class="nav-label">Riwayat</span>
+            </a>
+            <a href="karyawan.html">
+                <span class="ico">♙</span><span class="nav-label">Karyawan</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button class="logout" id="logoutBtn">Log out&nbsp; ↪</button>
+        </div>
+    </aside>
+
+    <div class="mobile-overlay" id="overlay"></div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <header class="topbar">
+            <span class="crumb">Leader / <a href="dashboard-lead.html">Dashboard</a> / <strong>Scan picklist</strong></span>
+        </header>
+
+        <section class="content">
+
+            <div class="heading">
+                <div>
+                    <h1>Scan picklist</h1>
+                    <p>Arahkan kamera ke barcode pada picklist untuk membaca data pekerjaan.</p>
+                </div>
+                <a class="btn" href="dashboard-lead.html">← Kembali ke dashboard</a>
+            </div>
+
+            <div class="scan-layout">
+
+                <div>
+                    <!-- KAMERA -->
+                    <div class="card">
+                        <div class="camera-header">
+                            <h2>Kamera</h2>
+                            <span class="camera-indicator" id="cameraIndicator">● Kamera mati</span>
+                        </div>
+
+                        <div class="camera-box">
+                            <video id="cameraVideo" autoplay muted playsinline class="hidden"></video>
+                            <div class="camera-placeholder" id="cameraPlaceholder">
+                                <div class="camera-symbol">▣</div>
+                                <div>Aktifkan kamera untuk mulai scan picklist</div>
+                            </div>
+                            <div class="scan-frame"></div>
+                            <div class="camera-hint">Posisikan barcode di dalam kotak</div>
+                        </div>
+
+                        <div class="camera-actions">
+                            <button class="btn btn-primary btn-sm" id="startCamera" type="button">◉ Aktifkan kamera</button>
+                            <button class="btn btn-sm hidden" id="stopCamera" type="button">Matikan kamera</button>
+                        </div>
+
+                        <div class="scan-message" id="cameraError" role="alert"></div>
+
+                        <div class="manual-block">
+                            <label class="field-label" for="barcodeInput">Input manual / scanner USB</label>
+                            <div class="input-row">
+                                <input id="barcodeInput" placeholder="Ketik nomor picklist, contoh: 0001178702" autocomplete="off" autofocus>
+                                <button class="btn" id="simulateScan" type="button">Cari picklist</button>
+                            </div>
+                            <div class="help">Bisa diketik, atau pakai scanner barcode USB/Bluetooth (kolom ini otomatis menerima hasil scan, lalu tekan Enter). Bisa juga pakai nomor Sales Order atau Prod. Order.</div>
+                        </div>
+                    </div>
+
+                    <!-- HASIL SCAN -->
+                    <div class="card">
+                        <div class="result-head">
+                            <h2>Hasil scan terakhir</h2>
+                            <span class="badge planning" id="scanState">Belum scan</span>
+                        </div>
+
+                        <div class="empty-result" id="noResult">Belum ada picklist yang dipindai.</div>
+
+                        <div class="new-pick hidden" id="newPickBox">
+                            <div class="new-pick-note">
+                                Kode <strong id="npScanned"></strong> <span id="npReason">belum terdaftar.</span> Isi data dari kertas picklist, cukup sekali. Scan berikutnya otomatis dikenali.<br>
+                                Yang tampil di dashboard adalah <strong>No. Material</strong> dan <strong>No. SO</strong>. Nomor picklist hanya dipakai untuk mengenali barcode.<br>
+                                Kalau ini barcode kedua dari picklist yang sama, isi "Nomor picklist" dengan nomor yang sama.
+                            </div>
+                            <div class="np-grid">
+                                <div class="np-full">
+                                    <label class="field-label" for="npCode">Nomor picklist (angka di barcode)</label>
+                                    <input id="npCode" placeholder="Contoh: 0001178702" autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="npMaterial">No. Material</label>
+                                    <input id="npMaterial" placeholder="Contoh: 181020601" autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="npSO">No. SO</label>
+                                    <input id="npSO" placeholder="BB30064-26" autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="npProd">Prod. Order (kunci unik)</label>
+                                    <input id="npProd" placeholder="400155497" autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="field-label" for="npQty">Qty (pc)</label>
+                                    <input id="npQty" type="number" min="1" value="1">
+                                </div>
+                                <div class="np-full">
+                                    <label class="field-label" for="npWork">Nama pekerjaan</label>
+                                    <input id="npWork" placeholder="Contoh: Cetak Dashboard - Dash SKT Cangkang SKYLNDR R25 2026" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="scan-message" id="npMsg" role="alert"></div>
+                            <div class="result-actions">
+                                <button class="btn btn-sm" id="npCancel" type="button">Batal</button>
+                                <button class="btn btn-primary btn-sm" id="npSave" type="button">Simpan &amp; lanjut</button>
+                            </div>
+                        </div>
+
+                        <div class="result-box hidden" id="scanResult">
+                            <div class="result-meta">
+                                <span class="badge done">✓ Berhasil dibaca</span>
+                                <span>No. picklist <strong id="resultCode"></strong></span>
+                            </div>
+
+                            <div class="result-name" id="resultWork"></div>
+
+                            <div class="result-data">
+                                <div><span>No. Material</span><strong id="resultMaterial"></strong></div>
+                                <div><span>No. SO</span><strong id="resultSO"></strong></div>
+                                <div><span>Prod. order</span><strong id="resultProd"></strong></div>
+                                <div><span>Qty</span><strong id="resultQty"></strong></div>
+                            </div>
+
+                            <div class="assign-box">
+                                <label class="field-label" for="scanNik" id="assignLabel">Untuk siapa pekerjaan ini? (NIK atau nama karyawan)</label>
+
+                                <div class="suggest-wrap">
+                                    <div class="input-row">
+                                        <input id="scanNik" placeholder="Ketik NIK atau nama, contoh: WN0003 atau Dian" autocomplete="off">
+                                        <button class="btn" id="addAssignee" type="button">＋ Tambah</button>
+                                    </div>
+                                    <div class="suggest hidden" id="suggestBox" role="listbox"></div>
+                                </div>
+
+                                <div class="help" id="employeeHelp">Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 karyawan.</div>
+
+                                <div class="assignees" id="assignees" aria-live="polite"></div>
+
+                                <div class="help">Karyawan belum terdaftar? <a href="karyawan.html">Tambahkan di halaman Karyawan</a>.</div>
+                            </div>
+
+                            <div class="result-actions">
+                                <button class="btn btn-sm" id="rescan" type="button">Scan ulang</button>
+                                <a class="btn btn-primary btn-sm hidden" id="goDashboard" href="dashboard-lead.html">Lihat di dashboard →</a>
+                                <button class="btn btn-primary btn-sm" id="assignTask" type="button">Tambahkan ke dashboard</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="back-row">
+                        <a class="btn" href="dashboard-lead.html">← Kembali ke dashboard</a>
+                    </div>
+                </div>
+
+                <!-- CARA SCAN -->
+                <aside class="card steps-card">
+                    <h2>Cara pakai</h2>
+
+                    <div class="step-group">Cara 1: Scan kamera</div>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <div><strong>Aktifkan kamera</strong><p>Klik "Aktifkan kamera", lalu izinkan akses kamera di browser.</p></div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <div><strong>Arahkan ke barcode</strong><p>Pilih salah satu barcode di picklist. Jarak 15-25 cm, garis barcode sejajar kotak, hindari pantulan cahaya.</p></div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <div><strong>Cek atau isi data</strong><p>Kalau picklist sudah dikenal, datanya langsung muncul. Kalau baru, isi form sekali lalu klik "Simpan &amp; lanjut".</p></div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="step-group">Cara 2: Manual</div>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <div><strong>Ketik nomor picklist</strong><p>Isi kolom "Input manual", contoh 0001178702, lalu Enter atau klik "Cari picklist". Scanner USB juga langsung bisa dipakai di kolom ini.</p></div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <div><strong>Cek atau isi data</strong><p>Sama seperti scan: data muncul otomatis, atau isi form kalau nomornya baru.</p></div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="step-group">Setelah data muncul</div>
+                    <div class="step">
+                        <span class="step-number">A</span>
+                        <div><strong>Pilih karyawan</strong><p>Ketik sebagian NIK atau nama, pilih dari daftar atau tekan Enter. Bisa lebih dari 1 orang.</p></div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">B</span>
+                        <div><strong>Tambahkan ke dashboard</strong><p>Klik "Tambahkan ke dashboard". Pekerjaan langsung muncul di dashboard.</p></div>
+                    </div>
+
+                    <div class="step-note">
+                        <strong style="color:#455468">Catatan</strong><br>
+                        Kamera hanya jalan di localhost atau HTTPS. Data picklist tersimpan di browser ini saja.
+                    </div>
+                </aside>
+
+            </div>
+
+        </section>
+
+        <footer class="footer">
+            <span><strong>© 2026 Section Viber</strong> · Portal Internal Section Viber</span>
+            <span>Hak cipta dilindungi undang-undang.</span>
+        </footer>
+
+    </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const app = $('app');
+
+/* SIDEBAR */
+$('toggleBtn').addEventListener('click', () => {
+    if (window.innerWidth <= 650) app.classList.toggle('mobile-open');
+    else app.classList.toggle('collapsed');
+});
+$('overlay').addEventListener('click', () => app.classList.remove('mobile-open'));
+
+$('logoutBtn').addEventListener('click', () => {
+    if (confirm('Apakah kamu yakin ingin logout?')) {
+        window.location.href = '../Login.html';
+    }
+});
+
+let toastTimer;
+function toast(message) {
+    $('toast').textContent = message;
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
+}
+
+/* DATA KARYAWAN
+   Sumber utama: daftar dari halaman Karyawan ('sectionViberEmployeeList').
+   Jika belum pernah dibuka, dipakai data awal yang sama dengan halaman Karyawan. */
+/* Daftar karyawan dibaca lewat Store (assets/store.js), sama dengan halaman Karyawan */
+function loadList() {
+    return Store.employees();
+}
+
+/* DATA PICKLIST
+   Bawaan: picklist dari foto (0001178702) + 2 contoh. Picklist baru yang diisi lewat form
+   disimpan di localStorage dan otomatis dikenali saat scan berikutnya. */
+const PICKLIST_KEY = 'sectionViberPicklists';
+
+const SEED_PICKLISTS = [
+    { code:'0001178702', material:'181020601', work:'Cetak Dashboard - Dash SKT Cangkang SKYLNDR R25 2026', so:'BB30064-26', prod:'400155497', qty:1, aliases:[] },
+    { code:'0001178703', material:'181020611', work:'Cuci belakang R25 MHD', so:'BB30061-26', prod:'400155498', qty:2, aliases:[] },
+    { code:'0001178704', material:'181020612', work:'Setting roll depan D5', so:'BB30062-26', prod:'400155499', qty:1, aliases:[] }
+];
+
+let currentPicklist = null;
+let pendingRaw = '';
+let cameraStream = null;
+let detector = null;
+let zxing = null;
+let scanLoop = false;
+
+const norm = v => String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, '');
+const noZero = v => norm(v).replace(/^0+(?=.)/, '');
+
+/* Sama jika persis sama, atau sama setelah angka 0 di depan dibuang */
+function sameCode(a, b) {
+    if (!norm(a)) return false;
+    return norm(a) === norm(b) || noZero(a) === noZero(b);
+}
+
+function readSaved() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(PICKLIST_KEY) || 'null');
+        if (Array.isArray(saved)) return saved.filter(p => p && p.code);
+    } catch (e) {}
+    return [];
+}
+
+function loadPicklists() {
+    const all = SEED_PICKLISTS.map(p => ({ ...p }));
+    readSaved().forEach(p => {
+        const i = all.findIndex(x => sameCode(x.code, p.code));
+        if (i >= 0) all[i] = { ...all[i], ...p };
+        else all.push(p);
+    });
+    return all;
+}
+
+/* Cari lewat nomor picklist, Sales Order, Prod. Order, material, atau barcode lain (alias) */
+function findPicklist(raw) {
+    return loadPicklists().find(p =>
+        [p.code, p.prod, p.so, p.material].concat(p.aliases || []).some(k => sameCode(k, raw))
+    ) || null;
+}
+
+function hidePickForm() {
+    $('newPickBox').classList.add('hidden');
+    $('npMsg').textContent = '';
+}
+
+function showPicklist(p) {
+    currentPicklist = { ...p };
+    pendingRaw = '';
+
+    $('cameraError').textContent = '';
+    hidePickForm();
+    $('scanState').textContent = 'Berhasil dibaca';
+    $('scanState').className = 'badge done';
+    $('noResult').classList.add('hidden');
+    $('scanResult').classList.remove('hidden');
+
+    $('resultCode').textContent = p.code;
+    $('resultMaterial').textContent = p.material || '-';
+    $('resultWork').textContent = p.work;
+    $('resultSO').textContent = p.so || '-';
+    $('resultProd').textContent = p.prod || '-';
+    $('resultQty').textContent = p.qty + ' pc';
+
+    resetAssign();
+    $('assignTask').classList.remove('hidden');
+    $('assignTask').disabled = false;
+    $('goDashboard').classList.add('hidden');
+}
+
+function showNewPickForm(raw, prefill) {
+    const p = prefill || {};
+
+    currentPicklist = null;
+    pendingRaw = raw;
+
+    $('scanResult').classList.add('hidden');
+    $('noResult').classList.add('hidden');
+    $('newPickBox').classList.remove('hidden');
+
+    $('scanState').textContent = prefill ? 'Lengkapi data' : 'Picklist baru';
+    $('scanState').className = 'badge planning';
+    $('npScanned').textContent = raw;
+    $('npReason').textContent = prefill ? 'sudah tersimpan tapi belum punya No. Material.' : 'belum terdaftar.';
+    $('npCode').value = p.code || raw;
+    $('npMaterial').value = p.material || '';
+    $('npSO').value = p.so || '';
+    $('npProd').value = p.prod || '';
+    $('npWork').value = p.work || '';
+    $('npQty').value = p.qty || 1;
+    $('npMsg').textContent = '';
+    $('npMaterial').focus();
+}
+
+function handleScan(raw) {
+    const code = String(raw || '').trim();
+    if (!code) return;
+
+    const p = findPicklist(code);
+    if (p && p.material) showPicklist(p);
+    else if (p) showNewPickForm(code, p);
+    else showNewPickForm(code);
+}
+
+$('simulateScan').addEventListener('click', () => handleScan($('barcodeInput').value));
+
+$('barcodeInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        handleScan(event.target.value);
+    }
+});
+
+$('npSave').addEventListener('click', () => {
+    const code = $('npCode').value.trim();
+    const material = $('npMaterial').value.trim();
+    const work = $('npWork').value.trim();
+    const so = $('npSO').value.trim();
+    const prod = $('npProd').value.trim();
+    const qty = Math.max(1, parseInt($('npQty').value, 10) || 1);
+
+    if (!code) { $('npMsg').textContent = 'Nomor picklist wajib diisi.'; return; }
+    if (!prod) { $('npMsg').textContent = 'Prod. Order wajib diisi. Ini adalah kunci unik pekerjaan.'; $('npProd').focus(); return; }
+    if (!material) { $('npMsg').textContent = 'No. Material wajib diisi (lihat kolom Material di kertas picklist).'; $('npMaterial').focus(); return; }
+    if (!work) { $('npMsg').textContent = 'Nama pekerjaan wajib diisi.'; return; }
+
+    const existing = loadPicklists().find(p => sameCode(p.code, code));
+    const aliases = new Set((existing && existing.aliases) || []);
+    if (pendingRaw && !sameCode(pendingRaw, code)) aliases.add(pendingRaw);
+
+    const item = {
+        code: existing ? existing.code : code,
+        material,
+        work,
+        so: so || (existing && existing.so) || '',
+        prod: prod || (existing && existing.prod) || '',
+        qty,
+        aliases: [...aliases]
+    };
+
+    const saved = readSaved();
+    const i = saved.findIndex(p => sameCode(p.code, item.code));
+    if (i >= 0) saved[i] = item; else saved.push(item);
+
+    try {
+        localStorage.setItem(PICKLIST_KEY, JSON.stringify(saved));
+    } catch (e) {
+        $('npMsg').textContent = 'Gagal menyimpan. Penyimpanan browser tidak tersedia.';
+        return;
+    }
+
+    toast('Picklist disimpan. Scan berikutnya otomatis dikenali.');
+    showPicklist(item);
+});
+
+$('npCancel').addEventListener('click', () => {
+    pendingRaw = '';
+    hidePickForm();
+    $('noResult').classList.remove('hidden');
+    $('scanState').textContent = 'Belum scan';
+    $('scanState').className = 'badge planning';
+    $('barcodeInput').focus();
+});
+
+/* ASSIGN BANYAK KARYAWAN (cari lewat NIK atau nama, boleh sebagian) */
+let assignees = [];
+let suggestions = [];
+let hlIndex = -1;
+
+function esc(v) {
+    return String(v).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function setHelp(text, kind) {
+    $('employeeHelp').textContent = text;
+    $('employeeHelp').className = 'help' + (kind ? ' ' + kind : '');
+}
+
+function renderAssignees() {
+    $('assignees').innerHTML = assignees.map(p => `
+        <div class="assignee">
+            <div><strong>${esc(p.name)}</strong><span>${esc(p.nik)}</span></div>
+            <button type="button" data-rm="${esc(p.nik)}" aria-label="Hapus ${esc(p.name)}">×</button>
+        </div>`).join('');
+
+    $('assignLabel').textContent = assignees.length
+        ? 'Tambah karyawan lain (NIK atau nama karyawan)'
+        : 'Untuk siapa pekerjaan ini? (NIK atau nama karyawan)';
+}
+
+function resetAssign() {
+    assignees = [];
+    $('scanNik').value = '';
+    hideSuggest();
+    renderAssignees();
+    setHelp('Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 karyawan.', '');
+}
+
+/* Cocok jika semua kata yang diketik ada di NIK atau nama (tanpa peduli huruf besar/kecil) */
+function findMatches(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+
+    const list = loadList().filter(emp => emp && emp.nik && emp.name);
+    const exact = list.filter(emp => emp.nik.toLowerCase() === q || emp.name.toLowerCase() === q);
+    if (exact.length) return exact;
+
+    const words = q.split(/\s+/);
+
+    return list.filter(emp => {
+        const text = `${emp.nik} ${emp.name}`.toLowerCase();
+        return words.every(word => text.includes(word));
+    });
+}
+
+const isAssigned = emp => assignees.some(p => p.nik === emp.nik);
+
+function hideSuggest() {
+    $('suggestBox').classList.add('hidden');
+    suggestions = [];
+    hlIndex = -1;
+}
+
+function showSuggest() {
+    const query = $('scanNik').value.trim();
+
+    if (!query) { hideSuggest(); return; }
+
+    suggestions = findMatches(query).filter(emp => !isAssigned(emp)).slice(0, 6);
+    hlIndex = -1;
+
+    $('suggestBox').innerHTML = suggestions.length
+        ? suggestions.map((emp, i) => `
+            <button type="button" class="suggest-item" data-i="${i}" role="option">
+                <span>${esc(emp.name)}</span><small>${esc(emp.nik)}</small>
+            </button>`).join('')
+        : '<div class="suggest-empty">Tidak ada karyawan yang cocok.</div>';
+
+    $('suggestBox').classList.remove('hidden');
+}
+
+function addAssignee(emp) {
+    if (isAssigned(emp)) { setHelp(`${emp.name} sudah ditambahkan.`, 'bad'); return false; }
+
+    assignees.push({ nik: emp.nik, name: emp.name });
+    $('scanNik').value = '';
+    hideSuggest();
+    renderAssignees();
+    setHelp(`✓ ${emp.name} ditambahkan. Ketik lagi untuk menambah karyawan lain.`, 'ok');
+    return true;
+}
+
+/* Membaca isi kolom. True jika kosong atau berhasil ditambahkan. */
+function commitInput() {
+    const query = $('scanNik').value.trim();
+    if (!query) return true;
+
+    const matches = findMatches(query);
+
+    if (!matches.length) {
+        setHelp(`"${query}" tidak ditemukan. Coba NIK atau nama lain, atau tambahkan dulu di halaman Karyawan.`, 'bad');
+        return false;
+    }
+
+    if (matches.length > 1) {
+        showSuggest();
+        setHelp(`Ada ${matches.length} karyawan yang cocok. Pilih dari daftar atau ketik lebih lengkap.`, 'bad');
+        return false;
+    }
+
+    return addAssignee(matches[0]);
+}
+
+$('scanNik').addEventListener('input', () => {
+    setHelp('Pilih dari daftar atau tekan Enter untuk menambahkan.', '');
+    showSuggest();
+});
+
+$('scanNik').addEventListener('focus', showSuggest);
+
+$('scanNik').addEventListener('keydown', event => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (!suggestions.length) return;
+        event.preventDefault();
+        hlIndex = (hlIndex + (event.key === 'ArrowDown' ? 1 : -1) + suggestions.length) % suggestions.length;
+        [...$('suggestBox').querySelectorAll('.suggest-item')].forEach((el, i) => el.classList.toggle('hl', i === hlIndex));
+    } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (hlIndex >= 0 && suggestions[hlIndex]) addAssignee(suggestions[hlIndex]);
+        else commitInput();
+    } else if (event.key === 'Escape') {
+        hideSuggest();
+    }
+});
+
+$('suggestBox').addEventListener('mousedown', event => {
+    const item = event.target.closest('.suggest-item');
+    if (!item) return;
+    event.preventDefault();
+    addAssignee(suggestions[Number(item.dataset.i)]);
+    $('scanNik').focus();
+});
+
+document.addEventListener('click', event => {
+    if (!event.target.closest('.suggest-wrap')) hideSuggest();
+});
+
+$('addAssignee').addEventListener('click', () => {
+    commitInput();
+    $('scanNik').focus();
+});
+
+$('assignees').addEventListener('click', event => {
+    const btn = event.target.closest('[data-rm]');
+    if (!btn) return;
+    assignees = assignees.filter(p => p.nik !== btn.dataset.rm);
+    renderAssignees();
+    setHelp('Karyawan dihapus dari daftar.', '');
+});
+
+/* TAMBAHKAN KE DASHBOARD */
+function todayISO() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+$('assignTask').addEventListener('click', () => {
+    if (!currentPicklist) { toast('Scan picklist terlebih dahulu.'); return; }
+    if (!currentPicklist.prod) { toast('Prod. Order belum diisi. Lengkapi data picklist dulu.'); return; }
+    if (!currentPicklist.material) { toast('No. Material belum diisi.'); return; }
+
+    /* Karyawan yang masih diketik di kolom ikut dimasukkan */
+    if (!commitInput()) return;
+
+    if (!assignees.length) {
+        setHelp('Tambahkan minimal 1 karyawan lewat NIK atau nama.', 'bad');
+        $('scanNik').focus();
+        return;
+    }
+
+    const team = assignees.map(p => ({ id: p.nik, name: p.name }));
+
+    /* Prod. Order = primary key pekerjaan */
+    const res = Store.addJob({
+        prod: currentPicklist.prod,
+        material: currentPicklist.material,
+        work: currentPicklist.work,
+        so: currentPicklist.so,
+        qty: `${currentPicklist.qty} pc${currentPicklist.qty > 1 ? 's' : ''}`,
+        team
+    }, 'Leader Section Viber', 'Leader');
+
+    if (!res.ok) { toast(res.error); return; }
+
+    currentPicklist = null;
+
+    $('scanState').textContent = 'Sudah ditambahkan';
+    $('assignTask').classList.add('hidden');
+    $('goDashboard').classList.remove('hidden');
+
+    toast(team.length > 1
+        ? `Picklist ditambahkan dan ditugaskan ke ${team.length} karyawan.`
+        : `Picklist ditambahkan dan ditugaskan ke ${team[0].name}.`);
+});
+
+$('rescan').addEventListener('click', () => {
+    currentPicklist = null;
+    pendingRaw = '';
+    resetAssign();
+    hidePickForm();
+
+    $('scanResult').classList.add('hidden');
+    $('noResult').classList.remove('hidden');
+    $('scanState').textContent = 'Siap scan';
+    $('scanState').className = 'badge planning';
+    $('barcodeInput').value = '';
+    $('cameraError').textContent = '';
+    $('barcodeInput').focus();
+});
+
+/* KAMERA
+   Pakai BarcodeDetector bawaan browser kalau ada (Chrome Android, dll).
+   Kalau tidak ada (Chrome Windows, Firefox, Safari), pakai ZXing dari CDN. */
+$('startCamera').addEventListener('click', startCamera);
+$('stopCamera').addEventListener('click', stopCamera);
+
+const WANTED_FORMATS = ['code_128', 'code_39', 'ean_13', 'ean_8', 'itf', 'upc_a', 'qr_code'];
+let frameCanvas = null;
+let lastDecode = 0;
+
+async function setupReader() {
+    detector = null;
+    zxing = null;
+
+    if ('BarcodeDetector' in window) {
+        try {
+            let formats = WANTED_FORMATS;
+            try {
+                const supported = await BarcodeDetector.getSupportedFormats();
+                formats = WANTED_FORMATS.filter(f => supported.includes(f));
+            } catch (e) {}
+            if (formats.length) detector = new BarcodeDetector({ formats });
+        } catch (e) { detector = null; }
+    }
+
+    if (!detector && typeof ZXing !== 'undefined') {
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+            ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
+            ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.UPC_A,
+            ZXing.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        zxing = new ZXing.MultiFormatReader();
+        zxing.setHints(hints);
+    }
+
+    return !!(detector || zxing);
+}
+
+async function startCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+        $('cameraError').textContent = 'Browser tidak mendukung kamera. Gunakan localhost/HTTPS atau input kode picklist.';
+        return;
+    }
+
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+        });
+    } catch (e) {
+        const reasons = {
+            NotAllowedError: 'Izin kamera ditolak. Klik ikon gembok/kamera di address bar, pilih Izinkan, lalu refresh halaman.',
+            NotFoundError: 'Kamera tidak ditemukan di perangkat ini. Pakai HP atau input manual.',
+            NotReadableError: 'Kamera sedang dipakai aplikasi lain (Zoom, Meet, dll). Tutup dulu lalu coba lagi.',
+            SecurityError: 'Kamera diblok karena halaman tidak aman. Buka lewat localhost atau HTTPS.'
+        };
+        $('cameraError').textContent = reasons[e.name] || ('Akses kamera gagal (' + e.name + ').');
+        return;
+    }
+
+    /* Fokus otomatis terus-menerus kalau didukung (abaikan jika tidak) */
+    try {
+        await cameraStream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    } catch (e) {}
+
+    $('cameraVideo').srcObject = cameraStream;
+    $('cameraVideo').classList.remove('hidden');
+    $('cameraPlaceholder').classList.add('hidden');
+    $('cameraIndicator').textContent = '● Kamera aktif';
+    $('cameraIndicator').classList.add('on');
+    $('startCamera').classList.add('hidden');
+    $('stopCamera').classList.remove('hidden');
+    $('cameraError').textContent = '';
+
+    if (await setupReader()) {
+        scanLoop = true;
+        requestAnimationFrame(readBarcode);
+    } else {
+        $('cameraError').textContent = 'Kamera aktif, tetapi pembaca barcode tidak termuat (cek koneksi internet). Gunakan input manual.';
+    }
+}
+
+/* Potong bagian tengah video, lalu baca dengan ZXing */
+function decodeZXing(video) {
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    const sh = Math.round(h * 0.5);
+    const sy = Math.round((h - sh) / 2);
+
+    if (!frameCanvas) frameCanvas = document.createElement('canvas');
+    if (frameCanvas.width !== w) frameCanvas.width = w;
+    if (frameCanvas.height !== sh) frameCanvas.height = sh;
+
+    frameCanvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, sy, w, sh, 0, 0, w, sh);
+
+    try {
+        const source = new ZXing.HTMLCanvasElementLuminanceSource(frameCanvas);
+        const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
+        return zxing.decode(bitmap).getText();
+    } catch (e) {
+        return '';
+    }
+}
+
+/* Kalau ada beberapa barcode terbaca sekaligus, utamakan yang sudah dikenal */
+function pickBest(values) {
+    return values.find(v => findPicklist(v)) || values[0] || '';
+}
+
+async function readBarcode() {
+    if (!scanLoop || !$('cameraVideo').srcObject) return;
+
+    const video = $('cameraVideo');
+
+    if (video.readyState >= 2 && video.videoWidth) {
+        let value = '';
+
+        try {
+            if (detector) {
+                const codes = await detector.detect(video);
+                value = pickBest(codes.map(c => c.rawValue).filter(Boolean));
+            } else if (zxing && performance.now() - lastDecode > 120) {
+                lastDecode = performance.now();
+                value = decodeZXing(video);
+            }
+        } catch (e) {}
+
+        if (value) {
+            $('barcodeInput').value = value;
+            stopCamera();
+            if (navigator.vibrate) navigator.vibrate(80);
+            handleScan(value);
+            return;
+        }
+    }
+
+    if (scanLoop) requestAnimationFrame(readBarcode);
+}
+
+function stopCamera() {
+    scanLoop = false;
+
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+
+    $('cameraVideo').srcObject = null;
+    $('cameraVideo').classList.add('hidden');
+    $('cameraPlaceholder').classList.remove('hidden');
+    $('cameraIndicator').textContent = '● Kamera mati';
+    $('cameraIndicator').classList.remove('on');
+    $('startCamera').classList.remove('hidden');
+    $('stopCamera').classList.add('hidden');
+}
+
+window.addEventListener('pagehide', stopCamera);
+</script>
+
+</body>
+</html>
