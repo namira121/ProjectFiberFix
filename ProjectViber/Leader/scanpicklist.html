@@ -119,17 +119,20 @@ button,input{font:inherit}
 .assignee button:hover{background:#f6c9c7;color:#c83e39}
 .help a{color:#1769b2;font-weight:650}
 
-/* FORM PICKLIST BARU */
-.new-pick{background:#fffaf0;border:1px solid #f3e3bd;border-radius:11px;padding:16px}
-.new-pick-note{color:#8a6b1f;font-size:12px;line-height:1.55;margin-bottom:14px}
-.np-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.np-full{grid-column:1/-1}
-.np-grid input{width:100%;height:42px;background:#fff;border:1px solid #dfe7ef;border-radius:8px;padding:0 12px;color:#354356;outline:none}
-.np-grid input:focus{border-color:#8fbdf5;box-shadow:0 0 0 3px #e4f0ff}
-.step-group{font-size:11px;font-weight:700;color:#10638b;letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px}
-.step-group+.step,.step-group~.step{margin-bottom:14px}
-.divider{border-top:1px solid #edf1f5;margin:6px 0 16px}
-@media (max-width:650px){.np-grid{grid-template-columns:1fr}}
+/* HASIL: 5 DATA TERBACA */
+.read-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.read-item{background:#fff;border:1px solid #dceee1;border-radius:9px;padding:11px 13px;min-width:0}
+.read-item.wide{grid-column:1/-1}
+.read-item>span{display:block;color:#789080;font-size:10px;font-weight:650;margin-bottom:6px}
+.read-item>strong{display:block;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.read-item .sub{color:#8995a2;font-size:11px;margin-top:4px}
+.read-item .assignees{margin-top:0}
+.assignee .tag{display:inline-block;margin-left:6px;background:#e6f8ef;color:#168454;border-radius:20px;padding:2px 7px;font-size:9px;font-weight:600;vertical-align:middle}
+.scanning .scan-frame:after{animation:sweep 1.4s ease-in-out infinite alternate}
+@keyframes sweep{from{top:12%}to{top:88%}}
+.camera-box.found .scan-frame{border-color:#3cc47c}
+.camera-box.found .scan-frame:after{background:#3cc47c;box-shadow:0 0 8px #3cc47c;animation:none}
+@media (max-width:650px){.read-grid{grid-template-columns:1fr}}
 
 /* TOAST */
 .toast{position:fixed;right:24px;bottom:24px;background:#182433;color:#fff;padding:12px 16px;border-radius:9px;font-size:12px;box-shadow:0 10px 30px #10233b40;opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s;z-index:40}
@@ -176,7 +179,6 @@ button,input{font:inherit}
     .crumb{display:none}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="../assets/store.js"></script>
 </head>
 
@@ -239,14 +241,14 @@ button,input{font:inherit}
                             <span class="camera-indicator" id="cameraIndicator">● Kamera mati</span>
                         </div>
 
-                        <div class="camera-box">
+                        <div class="camera-box" id="cameraBox">
                             <video id="cameraVideo" autoplay muted playsinline class="hidden"></video>
                             <div class="camera-placeholder" id="cameraPlaceholder">
                                 <div class="camera-symbol">▣</div>
-                                <div>Aktifkan kamera untuk mulai scan picklist</div>
+                                <div id="placeholderText">Aktifkan kamera untuk mulai scan picklist</div>
                             </div>
                             <div class="scan-frame"></div>
-                            <div class="camera-hint">Posisikan barcode di dalam kotak</div>
+                            <div class="camera-hint" id="cameraHint">Posisikan barcode di dalam kotak</div>
                         </div>
 
                         <div class="camera-actions">
@@ -255,15 +257,6 @@ button,input{font:inherit}
                         </div>
 
                         <div class="scan-message" id="cameraError" role="alert"></div>
-
-                        <div class="manual-block">
-                            <label class="field-label" for="barcodeInput">Input manual / scanner USB</label>
-                            <div class="input-row">
-                                <input id="barcodeInput" placeholder="Ketik nomor picklist, contoh: 0001178702" autocomplete="off" autofocus>
-                                <button class="btn" id="simulateScan" type="button">Cari picklist</button>
-                            </div>
-                            <div class="help">Bisa diketik, atau pakai scanner barcode USB/Bluetooth (kolom ini otomatis menerima hasil scan, lalu tekan Enter). Bisa juga pakai nomor Sales Order atau Prod. Order.</div>
-                        </div>
                     </div>
 
                     <!-- HASIL SCAN -->
@@ -273,64 +266,40 @@ button,input{font:inherit}
                             <span class="badge planning" id="scanState">Belum scan</span>
                         </div>
 
-                        <div class="empty-result" id="noResult">Belum ada picklist yang dipindai.</div>
-
-                        <div class="new-pick hidden" id="newPickBox">
-                            <div class="new-pick-note">
-                                Kode <strong id="npScanned"></strong> <span id="npReason">belum terdaftar.</span> Isi data dari kertas picklist, cukup sekali. Scan berikutnya otomatis dikenali.<br>
-                                Yang tampil di dashboard adalah <strong>No. Material</strong> dan <strong>No. SO</strong>. Nomor picklist hanya dipakai untuk mengenali barcode.<br>
-                                Kalau ini barcode kedua dari picklist yang sama, isi "Nomor picklist" dengan nomor yang sama.
-                            </div>
-                            <div class="np-grid">
-                                <div class="np-full">
-                                    <label class="field-label" for="npCode">Nomor picklist (angka di barcode)</label>
-                                    <input id="npCode" placeholder="Contoh: 0001178702" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="field-label" for="npMaterial">No. Material</label>
-                                    <input id="npMaterial" placeholder="Contoh: 181020601" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="field-label" for="npSO">No. SO</label>
-                                    <input id="npSO" placeholder="BB30064-26" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="field-label" for="npProd">Prod. Order (kunci unik)</label>
-                                    <input id="npProd" placeholder="400155497" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="field-label" for="npQty">Qty (pc)</label>
-                                    <input id="npQty" type="number" min="1" value="1">
-                                </div>
-                                <div class="np-full">
-                                    <label class="field-label" for="npWork">Nama pekerjaan</label>
-                                    <input id="npWork" placeholder="Contoh: Cetak Dashboard - Dash SKT Cangkang SKYLNDR R25 2026" autocomplete="off">
-                                </div>
-                            </div>
-                            <div class="scan-message" id="npMsg" role="alert"></div>
-                            <div class="result-actions">
-                                <button class="btn btn-sm" id="npCancel" type="button">Batal</button>
-                                <button class="btn btn-primary btn-sm" id="npSave" type="button">Simpan &amp; lanjut</button>
-                            </div>
-                        </div>
+                        <div class="empty-result" id="noResult">Belum ada picklist yang dipindai. Aktifkan kamera, barcode akan terbaca otomatis.</div>
 
                         <div class="result-box hidden" id="scanResult">
                             <div class="result-meta">
                                 <span class="badge done">✓ Berhasil dibaca</span>
-                                <span>No. picklist <strong id="resultCode"></strong></span>
+                                <span>5 data terbaca dari picklist</span>
                             </div>
 
-                            <div class="result-name" id="resultWork"></div>
-
-                            <div class="result-data">
-                                <div><span>No. Material</span><strong id="resultMaterial"></strong></div>
-                                <div><span>No. SO</span><strong id="resultSO"></strong></div>
-                                <div><span>Prod. order</span><strong id="resultProd"></strong></div>
-                                <div><span>Qty</span><strong id="resultQty"></strong></div>
+                            <div class="read-grid">
+                                <div class="read-item wide">
+                                    <span>1. Proses kerja</span>
+                                    <strong id="rWork"></strong>
+                                    <div class="sub" id="rQty"></div>
+                                </div>
+                                <div class="read-item">
+                                    <span>2. No. Sales Order</span>
+                                    <strong id="rSO"></strong>
+                                </div>
+                                <div class="read-item">
+                                    <span>3. No. Material</span>
+                                    <strong id="rMaterial"></strong>
+                                </div>
+                                <div class="read-item">
+                                    <span>4. No. Order</span>
+                                    <strong id="rProd"></strong>
+                                </div>
+                                <div class="read-item wide">
+                                    <span>5. Koordinator (tim pengerja)</span>
+                                    <div class="assignees" id="assignees" aria-live="polite"></div>
+                                </div>
                             </div>
 
                             <div class="assign-box">
-                                <label class="field-label" for="scanNik" id="assignLabel">Untuk siapa pekerjaan ini? (NIK atau nama karyawan)</label>
+                                <label class="field-label" for="scanNik">Tambah koordinator / tim pengerja lain (NIK atau nama karyawan)</label>
 
                                 <div class="suggest-wrap">
                                     <div class="input-row">
@@ -340,17 +309,14 @@ button,input{font:inherit}
                                     <div class="suggest hidden" id="suggestBox" role="listbox"></div>
                                 </div>
 
-                                <div class="help" id="employeeHelp">Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 karyawan.</div>
-
-                                <div class="assignees" id="assignees" aria-live="polite"></div>
-
+                                <div class="help" id="employeeHelp">Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 orang.</div>
                                 <div class="help">Karyawan belum terdaftar? <a href="karyawan.html">Tambahkan di halaman Karyawan</a>.</div>
                             </div>
 
                             <div class="result-actions">
-                                <button class="btn btn-sm" id="rescan" type="button">Scan ulang</button>
+                                <button class="btn btn-sm" id="rescan" type="button">Scan lagi</button>
                                 <a class="btn btn-primary btn-sm hidden" id="goDashboard" href="dashboard-lead.html">Lihat di dashboard →</a>
-                                <button class="btn btn-primary btn-sm" id="assignTask" type="button">Tambahkan ke dashboard</button>
+                                <button class="btn btn-primary btn-sm" id="assignTask" type="button">Simpan di dashboard</button>
                             </div>
                         </div>
                     </div>
@@ -364,47 +330,30 @@ button,input{font:inherit}
                 <aside class="card steps-card">
                     <h2>Cara pakai</h2>
 
-                    <div class="step-group">Cara 1: Scan kamera</div>
                     <div class="step">
                         <span class="step-number">1</span>
                         <div><strong>Aktifkan kamera</strong><p>Klik "Aktifkan kamera", lalu izinkan akses kamera di browser.</p></div>
                     </div>
                     <div class="step">
                         <span class="step-number">2</span>
-                        <div><strong>Arahkan ke barcode</strong><p>Pilih salah satu barcode di picklist. Jarak 15-25 cm, garis barcode sejajar kotak, hindari pantulan cahaya.</p></div>
+                        <div><strong>Tunggu barcode terbaca</strong><p>Arahkan ke barcode picklist. Sekitar 5 detik kemudian data terbaca otomatis.</p></div>
                     </div>
                     <div class="step">
                         <span class="step-number">3</span>
-                        <div><strong>Cek atau isi data</strong><p>Kalau picklist sudah dikenal, datanya langsung muncul. Kalau baru, isi form sekali lalu klik "Simpan &amp; lanjut".</p></div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="step-group">Cara 2: Manual</div>
-                    <div class="step">
-                        <span class="step-number">1</span>
-                        <div><strong>Ketik nomor picklist</strong><p>Isi kolom "Input manual", contoh 0001178702, lalu Enter atau klik "Cari picklist". Scanner USB juga langsung bisa dipakai di kolom ini.</p></div>
+                        <div><strong>Cek 5 data</strong><p>Proses kerja, No. Sales Order, No. Material, No. Order, dan Koordinator tampil langsung.</p></div>
                     </div>
                     <div class="step">
-                        <span class="step-number">2</span>
-                        <div><strong>Cek atau isi data</strong><p>Sama seperti scan: data muncul otomatis, atau isi form kalau nomornya baru.</p></div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="step-group">Setelah data muncul</div>
-                    <div class="step">
-                        <span class="step-number">A</span>
-                        <div><strong>Pilih karyawan</strong><p>Ketik sebagian NIK atau nama, pilih dari daftar atau tekan Enter. Bisa lebih dari 1 orang.</p></div>
+                        <span class="step-number">4</span>
+                        <div><strong>Tambah koordinator (opsional)</strong><p>Ketik sebagian NIK atau nama untuk menambah orang di tim pengerja.</p></div>
                     </div>
                     <div class="step">
-                        <span class="step-number">B</span>
-                        <div><strong>Tambahkan ke dashboard</strong><p>Klik "Tambahkan ke dashboard". Pekerjaan langsung muncul di dashboard.</p></div>
+                        <span class="step-number">5</span>
+                        <div><strong>Simpan di dashboard</strong><p>Pekerjaan langsung muncul di dashboard. Klik "Scan lagi" untuk picklist berikutnya.</p></div>
                     </div>
 
                     <div class="step-note">
                         <strong style="color:#455468">Catatan</strong><br>
-                        Kamera hanya jalan di localhost atau HTTPS. Data picklist tersimpan di browser ini saja.
+                        Ini mode simulasi: setelah kamera aktif, picklist contoh terbaca otomatis dalam ±5 detik. Kamera hanya jalan di localhost atau HTTPS. Kalau kamera tidak tersedia, simulasi tetap berjalan tanpa kamera.
                     </div>
                 </aside>
 
@@ -445,199 +394,60 @@ function toast(message) {
     toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
 }
 
-/* DATA KARYAWAN
-   Sumber utama: daftar dari halaman Karyawan ('sectionViberEmployeeList').
-   Jika belum pernah dibuka, dipakai data awal yang sama dengan halaman Karyawan. */
-/* Daftar karyawan dibaca lewat Store (assets/store.js), sama dengan halaman Karyawan */
-function loadList() {
-    return Store.employees();
-}
-
-/* DATA PICKLIST
-   Bawaan: picklist dari foto (0001178702) + 2 contoh. Picklist baru yang diisi lewat form
-   disimpan di localStorage dan otomatis dikenali saat scan berikutnya. */
-const PICKLIST_KEY = 'sectionViberPicklists';
-
-const SEED_PICKLISTS = [
-    { code:'0001178702', material:'181020601', work:'Cetak Dashboard - Dash SKT Cangkang SKYLNDR R25 2026', so:'BB30064-26', prod:'400155497', qty:1, aliases:[] },
-    { code:'0001178703', material:'181020611', work:'Cuci belakang R25 MHD', so:'BB30061-26', prod:'400155498', qty:2, aliases:[] },
-    { code:'0001178704', material:'181020612', work:'Setting roll depan D5', so:'BB30062-26', prod:'400155499', qty:1, aliases:[] }
-];
-
-let currentPicklist = null;
-let pendingRaw = '';
-let cameraStream = null;
-let detector = null;
-let zxing = null;
-let scanLoop = false;
-
-const norm = v => String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, '');
-const noZero = v => norm(v).replace(/^0+(?=.)/, '');
-
-/* Sama jika persis sama, atau sama setelah angka 0 di depan dibuang */
-function sameCode(a, b) {
-    if (!norm(a)) return false;
-    return norm(a) === norm(b) || noZero(a) === noZero(b);
-}
-
-function readSaved() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(PICKLIST_KEY) || 'null');
-        if (Array.isArray(saved)) return saved.filter(p => p && p.code);
-    } catch (e) {}
-    return [];
-}
-
-function loadPicklists() {
-    const all = SEED_PICKLISTS.map(p => ({ ...p }));
-    readSaved().forEach(p => {
-        const i = all.findIndex(x => sameCode(x.code, p.code));
-        if (i >= 0) all[i] = { ...all[i], ...p };
-        else all.push(p);
-    });
-    return all;
-}
-
-/* Cari lewat nomor picklist, Sales Order, Prod. Order, material, atau barcode lain (alias) */
-function findPicklist(raw) {
-    return loadPicklists().find(p =>
-        [p.code, p.prod, p.so, p.material].concat(p.aliases || []).some(k => sameCode(k, raw))
-    ) || null;
-}
-
-function hidePickForm() {
-    $('newPickBox').classList.add('hidden');
-    $('npMsg').textContent = '';
-}
-
-function showPicklist(p) {
-    currentPicklist = { ...p };
-    pendingRaw = '';
-
-    $('cameraError').textContent = '';
-    hidePickForm();
-    $('scanState').textContent = 'Berhasil dibaca';
-    $('scanState').className = 'badge done';
-    $('noResult').classList.add('hidden');
-    $('scanResult').classList.remove('hidden');
-
-    $('resultCode').textContent = p.code;
-    $('resultMaterial').textContent = p.material || '-';
-    $('resultWork').textContent = p.work;
-    $('resultSO').textContent = p.so || '-';
-    $('resultProd').textContent = p.prod || '-';
-    $('resultQty').textContent = p.qty + ' pc';
-
-    resetAssign();
-    $('assignTask').classList.remove('hidden');
-    $('assignTask').disabled = false;
-    $('goDashboard').classList.add('hidden');
-}
-
-function showNewPickForm(raw, prefill) {
-    const p = prefill || {};
-
-    currentPicklist = null;
-    pendingRaw = raw;
-
-    $('scanResult').classList.add('hidden');
-    $('noResult').classList.add('hidden');
-    $('newPickBox').classList.remove('hidden');
-
-    $('scanState').textContent = prefill ? 'Lengkapi data' : 'Picklist baru';
-    $('scanState').className = 'badge planning';
-    $('npScanned').textContent = raw;
-    $('npReason').textContent = prefill ? 'sudah tersimpan tapi belum punya No. Material.' : 'belum terdaftar.';
-    $('npCode').value = p.code || raw;
-    $('npMaterial').value = p.material || '';
-    $('npSO').value = p.so || '';
-    $('npProd').value = p.prod || '';
-    $('npWork').value = p.work || '';
-    $('npQty').value = p.qty || 1;
-    $('npMsg').textContent = '';
-    $('npMaterial').focus();
-}
-
-function handleScan(raw) {
-    const code = String(raw || '').trim();
-    if (!code) return;
-
-    const p = findPicklist(code);
-    if (p && p.material) showPicklist(p);
-    else if (p) showNewPickForm(code, p);
-    else showNewPickForm(code);
-}
-
-$('simulateScan').addEventListener('click', () => handleScan($('barcodeInput').value));
-
-$('barcodeInput').addEventListener('keydown', event => {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        handleScan(event.target.value);
-    }
-});
-
-$('npSave').addEventListener('click', () => {
-    const code = $('npCode').value.trim();
-    const material = $('npMaterial').value.trim();
-    const work = $('npWork').value.trim();
-    const so = $('npSO').value.trim();
-    const prod = $('npProd').value.trim();
-    const qty = Math.max(1, parseInt($('npQty').value, 10) || 1);
-
-    if (!code) { $('npMsg').textContent = 'Nomor picklist wajib diisi.'; return; }
-    if (!prod) { $('npMsg').textContent = 'Prod. Order wajib diisi. Ini adalah kunci unik pekerjaan.'; $('npProd').focus(); return; }
-    if (!material) { $('npMsg').textContent = 'No. Material wajib diisi (lihat kolom Material di kertas picklist).'; $('npMaterial').focus(); return; }
-    if (!work) { $('npMsg').textContent = 'Nama pekerjaan wajib diisi.'; return; }
-
-    const existing = loadPicklists().find(p => sameCode(p.code, code));
-    const aliases = new Set((existing && existing.aliases) || []);
-    if (pendingRaw && !sameCode(pendingRaw, code)) aliases.add(pendingRaw);
-
-    const item = {
-        code: existing ? existing.code : code,
-        material,
-        work,
-        so: so || (existing && existing.so) || '',
-        prod: prod || (existing && existing.prod) || '',
-        qty,
-        aliases: [...aliases]
-    };
-
-    const saved = readSaved();
-    const i = saved.findIndex(p => sameCode(p.code, item.code));
-    if (i >= 0) saved[i] = item; else saved.push(item);
-
-    try {
-        localStorage.setItem(PICKLIST_KEY, JSON.stringify(saved));
-    } catch (e) {
-        $('npMsg').textContent = 'Gagal menyimpan. Penyimpanan browser tidak tersedia.';
-        return;
-    }
-
-    toast('Picklist disimpan. Scan berikutnya otomatis dikenali.');
-    showPicklist(item);
-});
-
-$('npCancel').addEventListener('click', () => {
-    pendingRaw = '';
-    hidePickForm();
-    $('noResult').classList.remove('hidden');
-    $('scanState').textContent = 'Belum scan';
-    $('scanState').className = 'badge planning';
-    $('barcodeInput').focus();
-});
-
-/* ASSIGN BANYAK KARYAWAN (cari lewat NIK atau nama, boleh sebagian) */
-let assignees = [];
-let suggestions = [];
-let hlIndex = -1;
-
 function esc(v) {
     return String(v).replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
 }
+
+/* DAFTAR KARYAWAN (dari halaman Karyawan lewat Store) */
+function employeeList() {
+    try {
+        const list = Store.employees();
+        return Array.isArray(list) ? list.filter(e => e && e.nik && e.name) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+/* DATA PICKLIST SIMULASI
+   Tiap scan simulasi membaca picklist berikutnya secara bergiliran.
+   coord = koordinator yang tercetak di picklist. */
+const SIM_PICKLISTS = [
+    { material:'181020601', work:'Cetak Dashboard - Dash SKT Cangkang SKYLNDR R25 2026', so:'BB30064-26', prod:'400155497', qty:1,
+      coord:{ nik:'WN0003', name:'Dian Satrio Ardi Wibowo' } },
+    { material:'181020611', work:'Cuci belakang R25 MHD', so:'BB30061-26', prod:'400155498', qty:2,
+      coord:{ nik:'WN0001', name:'Rangga Irawan' } },
+    { material:'181020612', work:'Setting roll depan D5', so:'BB30062-26', prod:'400155499', qty:1,
+      coord:{ nik:'WN0007', name:'Irfan Muhamad' } },
+    { material:'181020613', work:'Pasang bumper depan R25', so:'BB30063-26', prod:'400155500', qty:1,
+      coord:{ nik:'WN0008', name:'Bayu' } },
+    { material:'181020614', work:'Finishing panel samping R25', so:'BB30065-26', prod:'400155501', qty:2,
+      coord:{ nik:'WN0003', name:'Dian Satrio Ardi Wibowo' } }
+];
+
+const SIM_KEY = 'sectionViberScanSimIndex';
+
+function nextSimPicklist() {
+    let i = 0;
+
+    try { i = parseInt(localStorage.getItem(SIM_KEY) || '0', 10) || 0; } catch (e) {}
+
+    const item = SIM_PICKLISTS[i % SIM_PICKLISTS.length];
+
+    try { localStorage.setItem(SIM_KEY, String((i + 1) % SIM_PICKLISTS.length)); } catch (e) {}
+
+    return item;
+}
+
+let currentPicklist = null;
+
+/* TIM PENGERJA / KOORDINATOR */
+let assignees = [];
+let suggestions = [];
+let hlIndex = -1;
+
+const HELP_DEFAULT = 'Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 orang.';
 
 function setHelp(text, kind) {
     $('employeeHelp').textContent = text;
@@ -645,31 +455,24 @@ function setHelp(text, kind) {
 }
 
 function renderAssignees() {
-    $('assignees').innerHTML = assignees.map(p => `
-        <div class="assignee">
-            <div><strong>${esc(p.name)}</strong><span>${esc(p.nik)}</span></div>
-            <button type="button" data-rm="${esc(p.nik)}" aria-label="Hapus ${esc(p.name)}">×</button>
-        </div>`).join('');
-
-    $('assignLabel').textContent = assignees.length
-        ? 'Tambah karyawan lain (NIK atau nama karyawan)'
-        : 'Untuk siapa pekerjaan ini? (NIK atau nama karyawan)';
+    $('assignees').innerHTML = assignees.length
+        ? assignees.map(p => `
+            <div class="assignee">
+                <div>
+                    <strong>${esc(p.name)}${p.scanned ? '<span class="tag">Terbaca dari picklist</span>' : ''}</strong>
+                    <span>${esc(p.nik)}</span>
+                </div>
+                <button type="button" data-rm="${esc(p.nik)}" aria-label="Hapus ${esc(p.name)}">×</button>
+            </div>`).join('')
+        : '<div class="help" style="margin:0">Belum ada koordinator. Tambahkan lewat kolom di bawah.</div>';
 }
 
-function resetAssign() {
-    assignees = [];
-    $('scanNik').value = '';
-    hideSuggest();
-    renderAssignees();
-    setHelp('Cukup ketik sebagian NIK atau nama, lalu pilih dari daftar atau tekan Enter. Bisa lebih dari 1 karyawan.', '');
-}
-
-/* Cocok jika semua kata yang diketik ada di NIK atau nama (tanpa peduli huruf besar/kecil) */
+/* Cocok jika semua kata yang diketik ada di NIK atau nama */
 function findMatches(query) {
     const q = query.trim().toLowerCase();
     if (!q) return [];
 
-    const list = loadList().filter(emp => emp && emp.nik && emp.name);
+    const list = employeeList();
     const exact = list.filter(emp => emp.nik.toLowerCase() === q || emp.name.toLowerCase() === q);
     if (exact.length) return exact;
 
@@ -714,11 +517,11 @@ function addAssignee(emp) {
     $('scanNik').value = '';
     hideSuggest();
     renderAssignees();
-    setHelp(`✓ ${emp.name} ditambahkan. Ketik lagi untuk menambah karyawan lain.`, 'ok');
+    setHelp(`✓ ${emp.name} ditambahkan. Ketik lagi untuk menambah orang lain.`, 'ok');
     return true;
 }
 
-/* Membaca isi kolom. True jika kosong atau berhasil ditambahkan. */
+/* True jika kolom kosong atau karyawan berhasil ditambahkan */
 function commitInput() {
     const query = $('scanNik').value.trim();
     if (!query) return true;
@@ -783,33 +586,69 @@ $('assignees').addEventListener('click', event => {
     if (!btn) return;
     assignees = assignees.filter(p => p.nik !== btn.dataset.rm);
     renderAssignees();
-    setHelp('Karyawan dihapus dari daftar.', '');
+    setHelp('Koordinator dihapus dari daftar.', '');
 });
 
-/* TAMBAHKAN KE DASHBOARD */
-function todayISO() {
-    const d = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/* TAMPILKAN HASIL SCAN (5 DATA) */
+function showResult(p) {
+    currentPicklist = { ...p };
+
+    $('rWork').textContent = p.work;
+    $('rQty').textContent = `Qty ${p.qty} pc`;
+    $('rSO').textContent = p.so;
+    $('rMaterial').textContent = p.material;
+    $('rProd').textContent = p.prod;
+
+    /* Koordinator yang tercetak di picklist langsung masuk ke tim pengerja */
+    const registered = employeeList().find(e => e.nik === p.coord.nik);
+    const coord = registered || p.coord;
+
+    assignees = [{ nik: coord.nik, name: coord.name, scanned: true }];
+    $('scanNik').value = '';
+    hideSuggest();
+    renderAssignees();
+    setHelp(HELP_DEFAULT, '');
+
+    $('scanState').textContent = 'Berhasil dibaca';
+    $('scanState').className = 'badge done';
+    $('noResult').classList.add('hidden');
+    $('scanResult').classList.remove('hidden');
+
+    $('assignTask').classList.remove('hidden');
+    $('assignTask').disabled = false;
+    $('goDashboard').classList.add('hidden');
+
+    $('scanResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function clearResult() {
+    currentPicklist = null;
+    assignees = [];
+    hideSuggest();
+    $('scanNik').value = '';
+
+    $('scanResult').classList.add('hidden');
+    $('noResult').classList.remove('hidden');
+    $('scanState').textContent = 'Belum scan';
+    $('scanState').className = 'badge planning';
+}
+
+/* SIMPAN DI DASHBOARD */
 $('assignTask').addEventListener('click', () => {
     if (!currentPicklist) { toast('Scan picklist terlebih dahulu.'); return; }
-    if (!currentPicklist.prod) { toast('Prod. Order belum diisi. Lengkapi data picklist dulu.'); return; }
-    if (!currentPicklist.material) { toast('No. Material belum diisi.'); return; }
 
     /* Karyawan yang masih diketik di kolom ikut dimasukkan */
     if (!commitInput()) return;
 
     if (!assignees.length) {
-        setHelp('Tambahkan minimal 1 karyawan lewat NIK atau nama.', 'bad');
+        setHelp('Tambahkan minimal 1 koordinator lewat NIK atau nama.', 'bad');
         $('scanNik').focus();
         return;
     }
 
     const team = assignees.map(p => ({ id: p.nik, name: p.name }));
 
-    /* Prod. Order = primary key pekerjaan */
+    /* Nomor Order (Prod. Order) = kunci unik pekerjaan */
     const res = Store.addJob({
         prod: currentPicklist.prod,
         material: currentPicklist.material,
@@ -823,174 +662,109 @@ $('assignTask').addEventListener('click', () => {
 
     currentPicklist = null;
 
-    $('scanState').textContent = 'Sudah ditambahkan';
+    $('scanState').textContent = 'Sudah disimpan';
     $('assignTask').classList.add('hidden');
     $('goDashboard').classList.remove('hidden');
 
     toast(team.length > 1
-        ? `Picklist ditambahkan dan ditugaskan ke ${team.length} karyawan.`
-        : `Picklist ditambahkan dan ditugaskan ke ${team[0].name}.`);
+        ? `Pekerjaan disimpan dan ditugaskan ke ${team.length} orang.`
+        : `Pekerjaan disimpan dan ditugaskan ke ${team[0].name}.`);
 });
 
+/* SCAN LAGI: kosongkan hasil lalu langsung mulai memindai lagi */
 $('rescan').addEventListener('click', () => {
-    currentPicklist = null;
-    pendingRaw = '';
-    resetAssign();
-    hidePickForm();
-
-    $('scanResult').classList.add('hidden');
-    $('noResult').classList.remove('hidden');
-    $('scanState').textContent = 'Siap scan';
-    $('scanState').className = 'badge planning';
-    $('barcodeInput').value = '';
-    $('cameraError').textContent = '';
-    $('barcodeInput').focus();
+    clearResult();
+    startCamera();
 });
 
-/* KAMERA
-   Pakai BarcodeDetector bawaan browser kalau ada (Chrome Android, dll).
-   Kalau tidak ada (Chrome Windows, Firefox, Safari), pakai ZXing dari CDN. */
+/* KAMERA + SIMULASI BARCODE
+   Setelah kamera dibuka, barcode dianggap terbaca otomatis setelah 5 detik. */
+const SCAN_SECONDS = 5;
+
+let cameraStream = null;
+let scanning = false;
+let scanTimer = null;
+let countTimer = null;
+
 $('startCamera').addEventListener('click', startCamera);
-$('stopCamera').addEventListener('click', stopCamera);
+$('stopCamera').addEventListener('click', () => stopCamera(true));
 
-const WANTED_FORMATS = ['code_128', 'code_39', 'ean_13', 'ean_8', 'itf', 'upc_a', 'qr_code'];
-let frameCanvas = null;
-let lastDecode = 0;
+function setHint(text) { $('cameraHint').textContent = text; }
 
-async function setupReader() {
-    detector = null;
-    zxing = null;
-
-    if ('BarcodeDetector' in window) {
-        try {
-            let formats = WANTED_FORMATS;
-            try {
-                const supported = await BarcodeDetector.getSupportedFormats();
-                formats = WANTED_FORMATS.filter(f => supported.includes(f));
-            } catch (e) {}
-            if (formats.length) detector = new BarcodeDetector({ formats });
-        } catch (e) { detector = null; }
-    }
-
-    if (!detector && typeof ZXing !== 'undefined') {
-        const hints = new Map();
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-            ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39,
-            ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
-            ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.UPC_A,
-            ZXing.BarcodeFormat.QR_CODE
-        ]);
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-        zxing = new ZXing.MultiFormatReader();
-        zxing.setHints(hints);
-    }
-
-    return !!(detector || zxing);
+function clearScanTimers() {
+    clearTimeout(scanTimer);
+    clearInterval(countTimer);
+    scanTimer = null;
+    countTimer = null;
 }
 
 async function startCamera() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-        $('cameraError').textContent = 'Browser tidak mendukung kamera. Gunakan localhost/HTTPS atau input kode picklist.';
-        return;
-    }
+    if (scanning) return;
 
-    try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false
-        });
-    } catch (e) {
-        const reasons = {
-            NotAllowedError: 'Izin kamera ditolak. Klik ikon gembok/kamera di address bar, pilih Izinkan, lalu refresh halaman.',
-            NotFoundError: 'Kamera tidak ditemukan di perangkat ini. Pakai HP atau input manual.',
-            NotReadableError: 'Kamera sedang dipakai aplikasi lain (Zoom, Meet, dll). Tutup dulu lalu coba lagi.',
-            SecurityError: 'Kamera diblok karena halaman tidak aman. Buka lewat localhost atau HTTPS.'
-        };
-        $('cameraError').textContent = reasons[e.name] || ('Akses kamera gagal (' + e.name + ').');
-        return;
-    }
+    clearResult();
+    scanning = true;
 
-    /* Fokus otomatis terus-menerus kalau didukung (abaikan jika tidak) */
-    try {
-        await cameraStream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-    } catch (e) {}
-
-    $('cameraVideo').srcObject = cameraStream;
-    $('cameraVideo').classList.remove('hidden');
-    $('cameraPlaceholder').classList.add('hidden');
-    $('cameraIndicator').textContent = '● Kamera aktif';
+    $('cameraError').textContent = '';
+    $('cameraBox').classList.remove('found');
+    $('cameraBox').classList.add('scanning');
+    $('cameraIndicator').textContent = '● Memindai barcode…';
     $('cameraIndicator').classList.add('on');
     $('startCamera').classList.add('hidden');
     $('stopCamera').classList.remove('hidden');
-    $('cameraError').textContent = '';
-
-    if (await setupReader()) {
-        scanLoop = true;
-        requestAnimationFrame(readBarcode);
-    } else {
-        $('cameraError').textContent = 'Kamera aktif, tetapi pembaca barcode tidak termuat (cek koneksi internet). Gunakan input manual.';
-    }
-}
-
-/* Potong bagian tengah video, lalu baca dengan ZXing */
-function decodeZXing(video) {
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    const sh = Math.round(h * 0.5);
-    const sy = Math.round((h - sh) / 2);
-
-    if (!frameCanvas) frameCanvas = document.createElement('canvas');
-    if (frameCanvas.width !== w) frameCanvas.width = w;
-    if (frameCanvas.height !== sh) frameCanvas.height = sh;
-
-    frameCanvas.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, sy, w, sh, 0, 0, w, sh);
+    $('placeholderText').textContent = 'Memindai barcode…';
+    setHint(`Mencari barcode… ${SCAN_SECONDS}`);
 
     try {
-        const source = new ZXing.HTMLCanvasElementLuminanceSource(frameCanvas);
-        const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(source));
-        return zxing.decode(bitmap).getText();
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('no-camera');
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+        });
+
+        /* Dimatikan sebelum kamera sempat menyala */
+        if (!scanning) { stream.getTracks().forEach(t => t.stop()); return; }
+
+        cameraStream = stream;
+        $('cameraVideo').srcObject = stream;
+        $('cameraVideo').classList.remove('hidden');
+        $('cameraPlaceholder').classList.add('hidden');
     } catch (e) {
-        return '';
-    }
-}
-
-/* Kalau ada beberapa barcode terbaca sekaligus, utamakan yang sudah dikenal */
-function pickBest(values) {
-    return values.find(v => findPicklist(v)) || values[0] || '';
-}
-
-async function readBarcode() {
-    if (!scanLoop || !$('cameraVideo').srcObject) return;
-
-    const video = $('cameraVideo');
-
-    if (video.readyState >= 2 && video.videoWidth) {
-        let value = '';
-
-        try {
-            if (detector) {
-                const codes = await detector.detect(video);
-                value = pickBest(codes.map(c => c.rawValue).filter(Boolean));
-            } else if (zxing && performance.now() - lastDecode > 120) {
-                lastDecode = performance.now();
-                value = decodeZXing(video);
-            }
-        } catch (e) {}
-
-        if (value) {
-            $('barcodeInput').value = value;
-            stopCamera();
-            if (navigator.vibrate) navigator.vibrate(80);
-            handleScan(value);
-            return;
-        }
+        if (!scanning) return;
+        $('cameraError').textContent =
+            'Kamera tidak bisa diakses (butuh izin kamera dan localhost/HTTPS). Simulasi scan tetap berjalan tanpa kamera.';
     }
 
-    if (scanLoop) requestAnimationFrame(readBarcode);
+    let left = SCAN_SECONDS;
+
+    countTimer = setInterval(() => {
+        left -= 1;
+        if (left > 0) setHint(`Mencari barcode… ${left}`);
+    }, 1000);
+
+    scanTimer = setTimeout(finishScan, SCAN_SECONDS * 1000);
 }
 
-function stopCamera() {
-    scanLoop = false;
+function finishScan() {
+    clearScanTimers();
+    if (!scanning) return;
+
+    $('cameraBox').classList.remove('scanning');
+    $('cameraBox').classList.add('found');
+    setHint('✓ Barcode terbaca');
+    $('cameraIndicator').textContent = '● Barcode terbaca';
+
+    /* Jeda singkat supaya terlihat "terbaca", lalu kamera mati dan data tampil */
+    setTimeout(() => {
+        if (!scanning) return;
+        stopCamera(false);
+        showResult(nextSimPicklist());
+    }, 600);
+}
+
+function stopCamera(manual) {
+    clearScanTimers();
+    scanning = false;
 
     if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
@@ -1000,13 +774,21 @@ function stopCamera() {
     $('cameraVideo').srcObject = null;
     $('cameraVideo').classList.add('hidden');
     $('cameraPlaceholder').classList.remove('hidden');
+    $('placeholderText').textContent = 'Aktifkan kamera untuk mulai scan picklist';
+    $('cameraBox').classList.remove('scanning');
     $('cameraIndicator').textContent = '● Kamera mati';
     $('cameraIndicator').classList.remove('on');
     $('startCamera').classList.remove('hidden');
     $('stopCamera').classList.add('hidden');
+    setHint('Posisikan barcode di dalam kotak');
+
+    if (manual) {
+        $('cameraBox').classList.remove('found');
+        $('cameraError').textContent = '';
+    }
 }
 
-window.addEventListener('pagehide', stopCamera);
+window.addEventListener('pagehide', () => stopCamera(true));
 </script>
 
 </body>
